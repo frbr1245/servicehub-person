@@ -12,15 +12,10 @@ namespace ServiceHub.Person.Context.Models
     public class PersonRepository
     {
         public const string MongoDbIdName = "_id";
-
         protected readonly IMongoClient _client;
-
         protected readonly IMongoDatabase _db;
-
         private readonly IMongoCollection<Person> _collection;
-
         protected readonly TimeSpan CacheExpiration;
-
         public PersonRepository(IOptions<ServiceHub.Person.Library.Models.Settings> settings)
         {
             _client = new MongoClient(settings.Value.ConnectionString);
@@ -32,12 +27,10 @@ namespace ServiceHub.Person.Context.Models
             CacheExpiration = new TimeSpan(0, settings.Value.CacheExpirationMinutes, 0);
         }
 
-
         public async Task<IEnumerable<Person>> GetAll()
         {
             return await _collection.Find(new BsonDocument()).ToListAsync();
         }
-
         public async Task<Person> GetById(string id)
         {
             ObjectId theObjectId;
@@ -62,7 +55,7 @@ namespace ServiceHub.Person.Context.Models
 
 
 
-        public static async Task<List<Person>> ReadFromSalesForce()
+        public async Task<List<Person>> ReadFromSalesForce()
         {
             var client = new HttpClient();
             var result = await client.GetAsync("");
@@ -83,30 +76,29 @@ namespace ServiceHub.Person.Context.Models
                 return null;
         }
 
-          public void UpdateMongoDB(List<Person> personlist)
+        public void UpdateMongoDB(List<Person> personlist)
         {
             // Get the contacts in the Person collection, check for existing contacts.
             // If not present, add to collection.
             var mongoContacts = _collection.Find(_ => true).ToList();
+            var updateList = new List<Person>();
             foreach (var person in personlist)
             {
-
                 var existingContact = mongoContacts.Find(item => person.ModelId == item.ModelId);
-
                 if (existingContact == null)
                 {
-                    _collection.InsertOne(person);
+                    updateList.Add(person);
                 }
             }
+            _collection.InsertManyAsync(updateList);
 
             foreach (var mongoContact in mongoContacts)
             {
                 var existingContact = personlist.Find(item => mongoContact.ModelId == item.ModelId);
                 if (existingContact == null)
                 {
-                    _collection.DeleteMany(Builders<Person>.Filter.Eq("_id", new ObjectId(mongoContact.ModelId)));
+                    _collection.DeleteMany(Builders<Person>.Filter.Eq("_id", new ObjectId(mongoContact.ModelId))); //TODO: only deleting one item here so optimize
                 }
-
             }
         }
 
