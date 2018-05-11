@@ -90,7 +90,7 @@ namespace ServiceHub.Person.Context.Models
                     updateList.Add(person);
                 }
             }
-            _collection.InsertManyAsync(updateList);
+            _collection.InsertMany(updateList);
 
             foreach (var mongoContact in mongoContacts)
             {
@@ -101,6 +101,5 @@ namespace ServiceHub.Person.Context.Models
                 }
             }
         }
-
     }
 }
